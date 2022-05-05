@@ -436,7 +436,7 @@ subroutine startrun(infile,logfile,evfile,dumpfile,noread)
                               xyzh(4,i),time,fext(1,i),fext(2,i),fext(3,i),poti,dtf,i)
           dtextforce = min(dtextforce,C_force*dtf)
           ! add velocity-dependent part
-          call externalforce_vdependent(iexternalforce,xyzh(1:3,i),vxyzu(1:3,i),fextv,poti)
+          call externalforce_vdependent(iexternalforce,xyzh(1:3,i),xyzh(4,i),vxyzu(1:3,i),vxyzu(4,i),fextv,poti)   ! here
           fext(1:3,i) = fext(1:3,i) + fextv
        endif
     enddo

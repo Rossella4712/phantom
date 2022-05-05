@@ -73,7 +73,7 @@ subroutine set_disc(id,master,mixture,nparttot,npart,npart_start,rmin,rmax, &
                     disc_mass,disc_massdust,sig_norm,star_mass,xyz_origin,vxyz_origin, &
                     particle_type,particle_mass,hfact,xyzh,vxyzu,polyk, &
                     position_angle,inclination,ismooth,alpha,rwarp,warp_smoothl, &
-                    bh_spin,bh_spin_angle,rref,writefile,ierr,prefix,verbose)
+                    bh_spin,bh_spin_angle,dmagnetic_momentum,dmagnetic_angle,rref,writefile,ierr,prefix,verbose)   ! here
  use io,   only:stdout
  use part, only:maxp,idust,maxtypes
  use centreofmass, only:get_total_angular_momentum
@@ -91,7 +91,7 @@ subroutine set_disc(id,master,mixture,nparttot,npart,npart_start,rmin,rmax, &
  real, optional,    intent(in)    :: xyz_origin(3),vxyz_origin(3)
  integer, optional, intent(in)    :: particle_type
  real, optional,    intent(in)    :: position_angle,inclination
- real, optional,    intent(in)    :: rwarp,warp_smoothl,bh_spin,bh_spin_angle
+ real, optional,    intent(in)    :: rwarp,warp_smoothl,bh_spin,bh_spin_angle,dmagnetic_momentum,dmagnetic_angle ! here
  logical, optional, intent(in)    :: ismooth,mixture
  real,              intent(out)   :: xyzh(:,:)
  real,              intent(out)   :: vxyzu(:,:)
@@ -105,7 +105,7 @@ subroutine set_disc(id,master,mixture,nparttot,npart,npart_start,rmin,rmax, &
  real    :: R_in,R_out,phi_min,phi_max,H_R,H_Rdust,R_indust,R_outdust,p_inddust,q_inddust,R_c,R_c_dust
  real    :: star_m,disc_m,disc_mdust,sigma_norm,sigma_normdust,Q_tmp
  real    :: honH,alphaSS_min,alphaSS_max,rminav,rmaxav,honHmin,honHmax
- real    :: aspin,aspin_angle,posangl,incl,R_warp,H_warp,psimax
+ real    :: aspin,aspin_angle,posangl,incl,R_warp,H_warp,psimax,admagnetic_momentum,admagnetic_angle  ! here
  real    :: xorigini(3),vorigini(3),R_ref,L_tot(3),L_tot_mag
  real    :: enc_m(maxbins),rad(maxbins),enc_m_tmp(maxbins),rad_tmp(maxbins)
  logical :: smooth_surface_density,do_write,do_mixture
@@ -178,6 +178,12 @@ subroutine set_disc(id,master,mixture,nparttot,npart,npart_start,rmin,rmax, &
  aspin_angle = 0.
  if (present(bh_spin_angle)) aspin_angle = bh_spin_angle
 
+
+admagnetic_momentum = 0.
+ if (present(dmagnetic_momentum)) admagnetic_momentum = dmagnetic_momentum    ! here
+admagnetic_angle = 0.
+ if (present(dmagnetic_angle)) admagnetic_angle = dmagnetic_angle
+ 
  !--reference radius for normalisation of sigma, temperature profiles
  if (present(rref)) then
     R_ref = rref

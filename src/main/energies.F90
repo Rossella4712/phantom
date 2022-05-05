@@ -319,7 +319,7 @@ subroutine compute_energies(t)
           epoti = 0.
 #else
           call externalforce(iexternalforce,xi,yi,zi,hi,t,dumx,dumy,dumz,epoti,ii=i)
-          call externalforce_vdependent(iexternalforce,xyzh(1:3,i),vxyzu(1:3,i),fdum,epoti)
+          call externalforce_vdependent(iexternalforce,xyzh(1:3,i),xyzh(4,i),vxyzu(1:3,i),vxyzu(4,i),fdum,epoti)  ! here
 #endif
           epot = epot + pmassi*epoti
        endif

@@ -66,12 +66,12 @@ module externalforces
    iext_staticsine    = 13, &
    iext_gwinspiral    = 14, &
    iext_discgravity   = 15, &
-   iext_corot_binary  = 16
-
+   iext_corot_binary  = 16, &
+   iext_magneticp     = 17    ! here
  !
  ! Human-readable labels for these
  !
- integer, parameter, public  :: iexternalforce_max = 16
+ integer, parameter, public  :: iexternalforce_max = 17
  character(len=*), parameter, public :: externalforcetype(iexternalforce_max) = (/ &
     'star                 ', &
     'corotate             ', &
@@ -88,7 +88,8 @@ module externalforces
     'static sinusoid      ', &
     'grav. wave inspiral  ', &
     'disc gravity         ', &
-    'corotating binary    '/)
+    'corotating binary    ', &
+    'magnetic precession  '/)    ! here/)
 
 contains
 !-----------------------------------------------------------------------
@@ -460,7 +461,7 @@ logical function is_velocity_dependent(iexternalforce)
  integer, intent(in) :: iexternalforce
 
  select case(iexternalforce)
- case(iext_corotate,iext_corot_binary,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton)
+ case(iext_corotate,iext_corot_binary,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp)  ! here
     is_velocity_dependent = .true.
  case default
     is_velocity_dependent = .false.
@@ -475,16 +476,29 @@ end function is_velocity_dependent
 !  This routine returns an explicit evaluation
 !+
 !-----------------------------------------------------------------------
-subroutine externalforce_vdependent(iexternalforce,xyzi,veli,fexti,poti,densi,ui)
+subroutine externalforce_vdependent(iexternalforce,xyzi,hi,veli,ui,fexti,poti,densi)    ! here
  use extern_corotate,      only:get_coriolis_force
  use extern_prdrag,        only:get_prdrag_vdependent_force
  use extern_lensethirring, only:get_lense_thirring_force
  use extern_gnewton,       only:get_gnewton_vdependent_force
+ 
+ use extern_magneticp,     only:get_magnetic_force    ! here
+ use part,                 only:rhoh,massoftype,igas  ! here
+ use eos,                  only:get_spsound,ieos      ! here
+ 
  integer, intent(in)  :: iexternalforce
  real,    intent(in)  :: xyzi(3),veli(3)
  real,    intent(out) :: fexti(3)
+ real,    intent(in)  :: hi, ui   ! here
  real,    intent(inout) :: poti
- real,    intent(in), optional :: densi,ui ! Needed for compatibility with gr
+ real,    intent(in), optional :: densi  ! Needed for compatibility with gr
+ 
+ real   :: rhoi, spsoundi   ! here
+ real   :: vxyzui(4) 
+    vxyzui(1) = veli(1)
+    vxyzui(2) = veli(2)
+    vxyzui(3) = veli(3)
+    vxyzui(4) = ui
 
  select case(iexternalforce)
  case(iext_corotate,iext_corot_binary)
@@ -495,6 +509,12 @@ subroutine externalforce_vdependent(iexternalforce,xyzi,veli,fexti,poti,densi,ui
     call get_lense_thirring_force(xyzi,veli,mass1,fexti)
  case(iext_gnewton)
     call get_gnewton_vdependent_force(xyzi,veli,mass1,fexti)
+    
+ case(iext_magneticp)     ! here
+   rhoi = rhoh(hi,massoftype(igas))
+   spsoundi = get_spsound(ieos,xyzi,rhoi,vxyzui)  
+   call get_magnetic_force(xyzi,veli,rhoi,spsoundi,accradius1,fexti)
+   
  case default
     fexti(:) = 0.
  end select
@@ -509,17 +529,34 @@ end subroutine externalforce_vdependent
 !+
 !-----------------------------------------------------------------------
 subroutine update_vdependent_extforce_leapfrog(iexternalforce, &
-           vhalfx,vhalfy,vhalfz,fxi,fyi,fzi,fexti,dt,xi,yi,zi,densi,ui)
+           vhalfx,vhalfy,vhalfz,fxi,fyi,fzi,fexti,dt,xi,yi,zi,hi,ui,densi)  ! here
  use extern_corotate,      only:update_coriolis_leapfrog
  use extern_prdrag,        only:update_prdrag_leapfrog
  use extern_lensethirring, only:update_ltforce_leapfrog
  use extern_gnewton,       only:update_gnewton_leapfrog
+ 
+ use extern_magneticp,     only:update_magforce_leapfrog  ! here
+ use part,                 only:rhoh,massoftype,igas      ! here
+ use eos,                  only:get_spsound,ieos          ! here
+ 
  integer, intent(in)    :: iexternalforce
- real,    intent(in)    :: dt,xi,yi,zi
+ real,    intent(in)    :: dt,xi,yi,zi,hi,ui     ! here
  real,    intent(in)    :: vhalfx,vhalfy,vhalfz
  real,    intent(inout) :: fxi,fyi,fzi
  real,    intent(out)   :: fexti(3)
- real,    intent(in), optional :: densi,ui ! Needed for compatibility with gr
+ real,    intent(in), optional :: densi ! Needed for compatibility with gr
+ 
+ real   :: rhoi, spsoundi  ! here
+ real   :: vxyzui(4)
+ real   :: xyzi(3)                                
+  vxyzui(1) = vhalfx    ! here ??
+  vxyzui(2) = vhalfy         
+  vxyzui(3) = vhalfz
+  vxyzui(4) = ui
+  xyzi(1) = xi
+  xyzi(2) = yi
+  xyzi(3) = zi
+
 
  select case(iexternalforce)
  case(iext_corotate,iext_corot_binary)
@@ -530,6 +567,12 @@ subroutine update_vdependent_extforce_leapfrog(iexternalforce, &
     call update_ltforce_leapfrog(vhalfx,vhalfy,vhalfz,fxi,fyi,fzi,fexti,dt,xi,yi,zi,mass1)
  case(iext_gnewton)
     call update_gnewton_leapfrog(vhalfx,vhalfy,vhalfz,fxi,fyi,fzi,fexti,dt,xi,yi,zi,mass1)
+    
+ case(iext_magneticp)                ! here
+   rhoi = rhoh(hi,massoftype(igas))
+   spsoundi = get_spsound(ieos,xyzi,rhoi,vxyzui)   ! here 
+    call update_magforce_leapfrog(vhalfx,vhalfy,vhalfz,fxi,fyi,fzi,rhoi,spsoundi,fexti,dt,xi,yi,zi,accradius1)
+    
  end select
 
 end subroutine update_vdependent_extforce_leapfrog
@@ -587,7 +630,7 @@ subroutine accrete_particles(iexternalforce,xi,yi,zi,hi,mi,ti,accreted)
 
  accreted = .false.
  select case(iexternalforce)
- case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton)
+ case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp)  ! here ?
 
     r2 = xi*xi + yi*yi + zi*zi
     if (r2 < (accradius1)**2) accreted = .true.
@@ -615,7 +658,7 @@ pure logical function was_accreted(iexternalforce,hi)
 
  select case(iexternalforce)
  case(iext_star,iext_binary,iext_corot_binary,iext_prdrag,&
-      iext_lensethirring,iext_einsteinprec,iext_gnewton)
+      iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp)   ! here
     ! An accreted particle is indicated by h < 0.
     ! Note less than, but not equal.
     ! (h=0 indicates dead MPI particle)
@@ -641,6 +684,7 @@ subroutine write_options_externalforces(iunit,iexternalforce)
  use extern_Bfield,        only:write_options_externB
  use extern_staticsine,    only:write_options_staticsine
  use extern_gwinspiral,    only:write_options_gwinspiral
+ use extern_magneticp,     only:write_options_magforce    ! here
  integer, intent(in) :: iunit,iexternalforce
  character(len=80) :: string
 
@@ -650,7 +694,7 @@ subroutine write_options_externalforces(iunit,iexternalforce)
  call write_inopt(iexternalforce,'iexternalforce',trim(string),iunit)
 
  select case(iexternalforce)
- case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton)
+ case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp) ! here
     call write_inopt(mass1,'mass1','mass of central object in code units',iunit)
     if (accradius1_hard < tiny(0.)) accradius1_hard = accradius1
     call write_inopt(accradius1,'accradius1','soft accretion radius of central object',iunit)
@@ -658,7 +702,7 @@ subroutine write_options_externalforces(iunit,iexternalforce)
  end select
 
  select case(iexternalforce)
- case(iext_star,iext_lensethirring,iext_einsteinprec,iext_gnewton)
+ case(iext_star,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp) ! here
     call write_inopt(eps_soft,'eps_soft','softening length (Plummer) for central potential in code units',iunit)
  end select
 
@@ -682,6 +726,8 @@ subroutine write_options_externalforces(iunit,iexternalforce)
     call write_options_staticsine(iunit)
  case(iext_gwinspiral)
     call write_options_gwinspiral(iunit)
+ case(iext_magneticp)
+    call write_options_magforce(iunit) ! here
  end select
 
 end subroutine write_options_externalforces
@@ -747,6 +793,7 @@ subroutine read_options_externalforces(name,valstring,imatch,igotall,ierr,iexter
  use extern_Bfield,        only:read_options_externB
  use extern_staticsine,    only:read_options_staticsine
  use extern_gwinspiral,    only:read_options_gwinspiral
+ use extern_magneticp,     only:read_options_magforce  ! here
  character(len=*), intent(in)    :: name,valstring
  logical,          intent(out)   :: imatch,igotall
  integer,          intent(out)   :: ierr
@@ -754,7 +801,7 @@ subroutine read_options_externalforces(name,valstring,imatch,igotall,ierr,iexter
  integer, save :: ngot = 0
  logical :: igotallcorotate,igotallbinary,igotallprdrag
  logical :: igotallltforce,igotallspiral,igotallexternB
- logical :: igotallstaticsine,igotallgwinspiral
+ logical :: igotallstaticsine,igotallgwinspiral,igotallmagp  ! here
  character(len=30), parameter :: tag = 'externalforces'
 
  imatch            = .true.
@@ -767,6 +814,7 @@ subroutine read_options_externalforces(name,valstring,imatch,igotall,ierr,iexter
  igotallltforce    = .true.
  igotallstaticsine = .true.
  igotallgwinspiral = .true.
+ igotallmagp       = .true. ! here
 
  !call read_inopt(db,'iexternalforce',iexternalforce,min=0,max=9,required=true)
  !if (imatch) ngot = ngot + 1
@@ -816,13 +864,15 @@ subroutine read_options_externalforces(name,valstring,imatch,igotall,ierr,iexter
        call read_options_staticsine(name,valstring,imatch,igotallstaticsine,ierr)
     case(iext_gwinspiral)
        call read_options_gwinspiral(name,valstring,imatch,igotallgwinspiral,ierr)
+    case(iext_magneticp)     ! here
+       call read_options_magforce(name,valstring,imatch,igotallmagp,ierr)   
     end select
  end select
  igotall = (ngot >= 1      .and. igotallcorotate   .and. &
             igotallbinary  .and. igotallprdrag     .and. &
             igotallspiral  .and. igotallltforce    .and. &
             igotallexternB .and. igotallstaticsine .and. &
-            igotallgwinspiral)
+            igotallgwinspiral .and. igotallmagp)  ! here
 
  !--make sure mass is read where relevant
  select case(iexternalforce)

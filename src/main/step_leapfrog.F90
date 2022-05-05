@@ -1262,12 +1262,13 @@ subroutine step_extern(npart,ntypes,dtsph,dtextforce,xyzh,vxyzu,fext,fxyzu,time,
                 vxhalfi = vxyzu(1,i)
                 vyhalfi = vxyzu(2,i)
                 vzhalfi = vxyzu(3,i)
+                ui = vxyzu(4,i)           ! here
                 fxi = fextx
                 fyi = fexty
                 fzi = fextz
                 call update_vdependent_extforce_leapfrog(iexternalforce,&
                      vxhalfi,vyhalfi,vzhalfi, &
-                     fxi,fyi,fzi,fextv,dt,xyzh(1,i),xyzh(2,i),xyzh(3,i))
+                     fxi,fyi,fzi,fextv,dt,xyzh(1,i),xyzh(2,i),xyzh(3,i),xyzh(4,i),ui)   ! here
                 fextx = fextx + fextv(1)
                 fexty = fexty + fextv(2)
                 fextz = fextz + fextv(3)

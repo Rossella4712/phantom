@@ -84,8 +84,8 @@ module setup
  use dim,              only:use_dust,maxalpha,use_dustgrowth,maxdusttypes,&
                             maxdustlarge,maxdustsmall,compiled_with_mcfost
  use externalforces,   only:iext_star,iext_binary,iext_lensethirring,&
-                            iext_einsteinprec,iext_corot_binary,iext_corotate,&
-                            update_externalforce
+                            iext_einsteinprec,iext_corot_binary,iext_corotate,iext_magneticp,&
+                            update_externalforce    ! here
  use extern_binary,    only:binarymassr,accradius1,accradius2,ramp,surface_force,eps_soft1
  use fileutils,        only:make_tags_unique
  use growth,           only:ifrag,isnow,rsnow,Tsnow,vfragSI,vfraginSI,vfragoutSI,gsizemincgs
@@ -126,6 +126,7 @@ module setup
  real    :: binary_a,binary_e,binary_i,binary_O,binary_w,binary_f,binary2_a,binary2_e,binary2_i,binary2_O,binary2_w,binary2_f
  real    :: flyby_a,flyby_d,flyby_O,flyby_i
  real    :: bhspin,bhspinangle
+ real    :: dmagnetic_momentum,dmagnetic_angle ! here
  logical :: einst_prec
 
  !--stratification
@@ -718,6 +719,7 @@ end subroutine surface_density_profile
 subroutine setup_central_objects()
  use externalforces,       only:mass1,accradius1
  use extern_lensethirring, only:blackhole_spin,blackhole_spin_angle
+ use extern_magneticp,     only:dipole_momentum,dipole_angle    ! here
  use setbinary,            only:set_binary,set_multiple
  use setflyby,             only:set_flyby
 
@@ -731,8 +733,12 @@ subroutine setup_central_objects()
        print "(/,a)",' Central point mass represented by external force with accretion boundary'
        print "(a,g10.3,a)",'   Object mass:      ', m1,    trim(mass_unit)
        print "(a,g10.3,a)",'   Accretion Radius: ', accr1, trim(dist_unit)
+       print "(a,g10.3,a)",'   Magnetic dipole momentum: ', dmagnetic_momentum        ! here manca unità di misura
+       print "(a,g10.3,a)",'   Magnetic dipole angle: ', dmagnetic_angle, 'deg'       ! here
        mass1      = m1
        accradius1 = accr1
+       dipole_momentum = dmagnetic_momentum           ! here
+       dipole_angle = dmagnetic_angle*(pi/180.0)      ! here
        mcentral   = m1
     case (2)
        print "(/,a)",' Central binary represented by external force with accretion boundary'
@@ -769,6 +775,8 @@ subroutine setup_central_objects()
        print "(/,a)",' Central object represented by a sink at the system origin'
        print "(a,g10.3,a)",'   Object mass:      ', m1,    trim(mass_unit)
        print "(a,g10.3,a)",'   Accretion Radius: ', accr1, trim(dist_unit)
+       print "(a,g10.3,a)",'   Magnetic dipole momentum: ', dmagnetic_momentum        ! here manca unità di misura
+       print "(a,g10.3,a)",'   Magnetic dipole angle: ', dmagnetic_angle, 'deg'       ! here
        nptmass                      = 1
        xyzmh_ptmass(:,:)            = 0.
        xyzmh_ptmass(1:3,nptmass)    = 0.
@@ -777,6 +785,8 @@ subroutine setup_central_objects()
        xyzmh_ptmass(ihsoft,nptmass) = accr1
        vxyz_ptmass                  = 0.
        mcentral                     = m1
+       dipole_momentum = dmagnetic_momentum               ! here
+       dipole_angle = dmagnetic_angle*(pi/180.0)          ! here
     case (2)
        !--binary
        select case (ibinary)
@@ -1097,7 +1107,8 @@ subroutine setup_discs(id,fileprefix,hfact,gamma,npart,polyk,&
                         rwarp            = R_warp(i),            &
                         warp_smoothl     = H_warp(i),            &
                         bh_spin          = bhspin,               &
-                        prefix           = prefix)
+                        dmagnetic_momentum =  dmagnetic_momentum, &    
+                        prefix           = prefix)   ! here
 
           !--set dustfrac
           call set_dustfrac(i,npart+1,npart+1+npingasdisc,xyzh,xorigini)
@@ -1151,7 +1162,8 @@ subroutine setup_discs(id,fileprefix,hfact,gamma,npart,polyk,&
                               rwarp          = R_warp(i),          &
                               warp_smoothl   = H_warp(i),          &
                               bh_spin        = bhspin,             &
-                              prefix         = dustprefix(j))
+                              dmagnetic_momentum =  dmagnetic_momentum, &    
+                              prefix         = dustprefix(j))   ! here
 
                 npart = npart + npindustdisc
                 npartoftype(itype) = npartoftype(itype) + npindustdisc
@@ -1192,7 +1204,8 @@ subroutine setup_discs(id,fileprefix,hfact,gamma,npart,polyk,&
                         rwarp           = R_warp(i),          &
                         warp_smoothl    = H_warp(i),          &
                         bh_spin         = bhspin,             &
-                        prefix          = prefix)
+                        dmagnetic_momentum =  dmagnetic_momentum, &    
+                        prefix          = prefix)   ! here
 
           npart = npart + npingasdisc
           npartoftype(igas) = npartoftype(igas) + npingasdisc
@@ -1244,7 +1257,8 @@ subroutine setup_discs(id,fileprefix,hfact,gamma,npart,polyk,&
                               rwarp          = R_warp(i),          &
                               warp_smoothl   = H_warp(i),          &
                               bh_spin        = bhspin,             &
-                              prefix         = dustprefix(j))
+                              dmagnetic_momentum =  dmagnetic_momentum, &    
+                              prefix         = dustprefix(j))  ! here
 
                 npart = npart + npindustdisc
                 npartoftype(itype) = npartoftype(itype) + npindustdisc
@@ -1741,6 +1755,8 @@ subroutine setup_interactive()
        iexternalforce = iext_star
        m1       = 1.
        accr1    = 1.
+       dmagnetic_momentum = 0.                    ! here
+       dmagnetic_angle = 0.
     case (2)
        !--fixed binary
        call prompt('Do you want model a surface on one mass (i.e. planet)?',surface_force)
@@ -1784,6 +1800,8 @@ subroutine setup_interactive()
        !--single star
        m1       = 1.
        accr1    = 1.
+       dmagnetic_momentum = 0.                    ! here
+       dmagnetic_angle = 0.
     case (2)
        !--binary
        call prompt('Do you want the binary orbit to be bound (elliptic) or'// &
@@ -2123,6 +2141,8 @@ subroutine write_setupfile(filename)
        !--point mass
        call write_inopt(m1,'m1','star mass',iunit)
        call write_inopt(accr1,'accr1','star accretion radius',iunit)
+       call write_inopt(dmagnetic_momentum,'dipole_momentum','stellar magnetic dipole momentum', iunit)           ! here
+       call write_inopt(dmagnetic_angle, 'dipole_angle','angle between stellar magnetic dipole axis and disc axis (deg)', iunit)
     case (2)
        !--fixed binary
        call write_inopt(m1,'m1','primary mass',iunit)
@@ -2165,6 +2185,8 @@ subroutine write_setupfile(filename)
        write(iunit,"(/,a)") '# options for central star'
        call write_inopt(m1,'m1','star mass',iunit)
        call write_inopt(accr1,'accr1','star accretion radius',iunit)
+       call write_inopt(dmagnetic_momentum, 'dmagnetic_momentum','stellar magnetic dipole momentum',iunit)           ! here
+       call write_inopt(dmagnetic_angle, 'dmagnetic_angle','angle between stellar magnetic dipole axis and disc axis (deg)',iunit)
     case (2)
        !--binary
        call write_inopt(ibinary,'ibinary','binary orbit (0=bound,1=unbound [flyby])',iunit)
@@ -2442,6 +2464,8 @@ subroutine read_setupfile(filename,ierr)
        iexternalforce = iext_star
        call read_inopt(m1,'m1',db,min=0.,errcount=nerr)
        call read_inopt(accr1,'accr1',db,min=0.,errcount=nerr)
+       call read_inopt(dmagnetic_momentum,'dmagnetic_momentum',db,min=0.,errcount=nerr)       ! here
+       call read_inopt(dmagnetic_angle,'dmagnetic_angle',db,min=0.,errcount=nerr)
     case (2)
        !--fixed binary
        iexternalforce = iext_binary
@@ -2480,6 +2504,8 @@ subroutine read_setupfile(filename,ierr)
        !--single star
        call read_inopt(m1,'m1',db,min=0.,errcount=nerr)
        call read_inopt(accr1,'accr1',db,min=0.,errcount=nerr)
+       call read_inopt(dmagnetic_momentum,'dmagnetic_momentum',db,min=0.,errcount=nerr)       ! here
+       call read_inopt(dmagnetic_angle,'dmagnetic_angle',db,min=0.,errcount=nerr)
     case (2)
        !--binary
        call read_inopt(ibinary,'ibinary',db,min=0,max=1,errcount=nerr)
