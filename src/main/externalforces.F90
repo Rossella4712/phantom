@@ -140,7 +140,7 @@ subroutine externalforce(iexternalforce,xi,yi,zi,hi,ti,fextxi,fextyi,fextzi,phi,
 
  select case(iexternalforce)
 
- case(iext_star, iext_lensethirring)  
+ case(iext_star, iext_lensethirring, iext_magneticp)  
 !
 !--1/r^2 force from central point mass
 !

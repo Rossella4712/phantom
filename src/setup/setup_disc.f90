@@ -128,6 +128,8 @@ module setup
  real    :: bhspin,bhspinangle
  real    :: dmagnetic_momentum,dmagnetic_angle ! here
  logical :: einst_prec
+ 
+ logical :: is_mag ! here
 
  !--stratification
  real    :: temp_atm0,temp_mid0
@@ -347,7 +349,8 @@ subroutine set_default_options()
  bhspin      = 1.
  bhspinangle = 0.
  
- !--magnetic dipole precession   
+ !--magnetic dipole precession 
+ is_mag = .false.  
  dmagnetic_momentum = 0.   ! here 
  dmagnetic_angle = 0.
 
@@ -738,16 +741,14 @@ subroutine setup_central_objects()
        print "(a,g10.3,a)",'   Object mass:      ', m1,    trim(mass_unit)
        print "(a,g10.3,a)",'   Accretion Radius: ', accr1, trim(dist_unit)
        mass1      = m1
-       accradius1 = accr
+       accradius1 = accr1
        mcentral   = m1
-       
-       if (ixternalforce == iext_magneticp) then    ! here
+       if (is_mag) then    ! here
          print "(a,g10.3,a)",'   Magnetic dipole momentum: ', dmagnetic_momentum, 'G cm^3'       ! here 
          print "(a,g10.3,a)",'   Magnetic dipole angle: ', dmagnetic_angle, 'deg'       ! here
          dipole_momentum = dmagnetic_momentum           ! here
          dipole_angle = dmagnetic_angle*(pi/180.0)      ! here
-       endif
-       
+       endif    
     case (2)
        print "(/,a)",' Central binary represented by external force with accretion boundary'
        print "(a,g10.3,a)",'   Primary mass:       ', m2,    trim(mass_unit)
@@ -774,7 +775,17 @@ subroutine setup_central_objects()
        blackhole_spin       = bhspin
        blackhole_spin_angle = bhspinangle*(pi/180.0)
        mcentral             = m1
-  
+    !case (4)   ! here
+     !  print "(/,a)",' Central point mass, with magnetic dipole, represented by external force with accretion boundary'
+     !  print "(a,g10.3,a)",'   Object mass:      ', m1,    trim(mass_unit)
+     !  print "(a,g10.3,a)",'   Accretion Radius: ', accr1, trim(dist_unit)
+     !  print "(a,g10.3,a)",'   Magnetic dipole momentum: ', dmagnetic_momentum, 'G cm^3'      
+     !  print "(a,g10.3,a)",'   Magnetic dipole angle: ', dmagnetic_angle, 'deg'      
+     !  mass1      = m1
+     !  accradius1 = accr1
+      ! mcentral   = m1
+      ! dipole_momentum = dmagnetic_momentum           
+      ! dipole_angle = dmagnetic_angle*(pi/180.0)     
     end select
     call update_externalforce(iexternalforce,tinitial,0.)
  case (1)
@@ -792,9 +803,8 @@ subroutine setup_central_objects()
        xyzmh_ptmass(ihsoft,nptmass) = accr1
        vxyz_ptmass                  = 0.
        mcentral                     = m1
-       
-       if (ixternalforce == iext_magneticp) then    ! here
-         print "(a,g10.3,a)",'   Magnetic dipole momentum: ', dmagnetic_momentum, 'G cm^3'      ! here manca unità di misura
+       if (is_mag) then    ! here
+         print "(a,g10.3,a)",'   Magnetic dipole momentum: ', dmagnetic_momentum, 'G cm^3'      ! here
          print "(a,g10.3,a)",'   Magnetic dipole angle: ', dmagnetic_angle, 'deg'       ! here
          dipole_momentum = dmagnetic_momentum         
          dipole_angle = dmagnetic_angle*(pi/180.0)     
@@ -1765,14 +1775,22 @@ subroutine setup_interactive()
     select case (ipotential)
     case (1)
        !--point mass
-       iexternalforce = iext_star
-       m1       = 1.
-       accr1    = 1.
-     
-       if (ixternalforce == iext_magneticp) then  
-        dmagnetic_momentum = 0.                    ! here
+       call prompt('Magnetic dipole?',is_mag)      ! here
+       if (is_mag) then
+        iexternalforce = iext_magneticp
+        m1       = 1.
+        accr1    = 1.
+        dmagnetic_momentum = 0.           
         dmagnetic_angle = 0.
+       else 
+        iexternalforce = iext_star
+        m1       = 1.
+        accr1    = 1.
        endif
+       !if (ixternalforce == iext_magneticp) then  
+       ! dmagnetic_momentum = 0.                    ! here
+       ! dmagnetic_angle = 0.
+       !endif
     case (2)
        !--fixed binary
        call prompt('Do you want model a surface on one mass (i.e. planet)?',surface_force)
@@ -1807,6 +1825,14 @@ subroutine setup_interactive()
        accr1       = 30.
        bhspin      = 1.
        bhspinangle = 0.
+    !case (4)        ! here
+       !--star with magnetic dipole
+    !   iexternalforce = iext_magneticp
+    !   m1       = 1.
+    !   accr1    = 1.
+    !   dmagnetic_momentum = 0.           
+    !   dmagnetic_angle = 0.
+       
     end select
  case (1)
     !--sink particle(s)
@@ -1814,13 +1840,21 @@ subroutine setup_interactive()
     select case (nsinks)
     case (1)
        !--single star
-       m1       = 1.
-       accr1    = 1.
-       
-       if (ixternalforce == iext_magneticp) then  
-        dmagnetic_momentum = 0.                    ! here
+       call prompt('Magnetic dipole?',is_mag)      ! here
+       if (is_mag) then
+        iexternalforce = iext_magneticp
+        m1       = 1.
+        accr1    = 1.
+        dmagnetic_momentum = 0.           
         dmagnetic_angle = 0.
+       else 
+        m1       = 1.
+        accr1    = 1.
        endif
+       !if (ixternalforce == iext_magneticp) then     ! here
+      ! dmagnetic_momentum = 0.                    
+      ! dmagnetic_angle = 0.
+       !endif
        
     case (2)
        !--binary
@@ -2162,10 +2196,12 @@ subroutine write_setupfile(filename)
        call write_inopt(m1,'m1','star mass',iunit)
        call write_inopt(accr1,'accr1','star accretion radius',iunit)
        
-       if (ixternalforce == iext_magneticp) then    ! here
-         call write_inopt(dmagnetic_momentum,'dipole_momentum','stellar magnetic dipole momentum', iunit)           ! here
-         call write_inopt(dmagnetic_angle, 'dipole_angle','angle between stellar magnetic dipole axis and disc axis (deg)', iunit)
-       endif   
+       write(iunit,"(/,a)") '# options for point mass with magnetic dipole'
+       call write_inopt(is_mag,'magnetic_dipole','include magnetic dipole precession',iunit)    ! here
+      ! if (is_mag) then
+       ! call write_inopt(dmagnetic_momentum,'dipole_momentum','stellar magnetic dipole momentum', iunit)           
+      !  call write_inopt(dmagnetic_angle, 'dipole_angle','angle between stellar magnetic dipole axis and disc axis (deg)', iunit)
+      ! endif   
     case (2)
        !--fixed binary
        call write_inopt(m1,'m1','primary mass',iunit)
@@ -2198,6 +2234,12 @@ subroutine write_setupfile(filename)
        call write_inopt(accr1,'accr1','black hole accretion radius',iunit)
        call write_inopt(bhspin,'bhspin','black hole spin',iunit)
        call write_inopt(bhspinangle,'bhspinangle','black hole spin angle (deg)',iunit)
+   ! case (4)     ! here
+      !--star with magnetic dipole
+    !  call write_inopt(m1,'m1','star mass',iunit)
+    !  call write_inopt(accr1,'accr1','star accretion radius',iunit)
+    !  call write_inopt(dmagnetic_momentum,'dipole_momentum','stellar magnetic dipole momentum', iunit)           
+    !  call write_inopt(dmagnetic_angle, 'dipole_angle','angle between stellar magnetic dipole axis and disc axis (deg)', iunit)
     end select
  case (1)
     !--sink particle(s)
@@ -2208,11 +2250,13 @@ subroutine write_setupfile(filename)
        write(iunit,"(/,a)") '# options for central star'
        call write_inopt(m1,'m1','star mass',iunit)
        call write_inopt(accr1,'accr1','star accretion radius',iunit)
-      
-      if (ixternalforce == iext_magneticp) then    ! here
-         call write_inopt(dmagnetic_momentum,'dipole_momentum','stellar magnetic dipole momentum', iunit)           ! here
-         call write_inopt(dmagnetic_angle, 'dipole_angle','angle between stellar magnetic dipole axis and disc axis (deg)', iunit)
-       endif  
+       
+       write(iunit,"(/,a)") '# options for central star with magnetic dipole'
+       call write_inopt(is_mag,'magnetic_dipole','include magnetic dipole precession',iunit)    ! here
+      ! if (is_mag) then
+       ! call write_inopt(dmagnetic_momentum,'dipole_momentum','stellar magnetic dipole momentum', iunit)           
+      !  call write_inopt(dmagnetic_angle, 'dipole_angle','angle between stellar magnetic dipole axis and disc axis (deg)', iunit)
+      ! endif 
     case (2)
        !--binary
        call write_inopt(ibinary,'ibinary','binary orbit (0=bound,1=unbound [flyby])',iunit)
@@ -2491,11 +2535,12 @@ subroutine read_setupfile(filename,ierr)
        call read_inopt(m1,'m1',db,min=0.,errcount=nerr)
        call read_inopt(accr1,'accr1',db,min=0.,errcount=nerr)
        
-       if (ixternalforce == iext_magneticp) then    ! here
-        call read_inopt(dmagnetic_momentum,'dmagnetic_momentum',db,min=0.,errcount=nerr)       ! here
-        call read_inopt(dmagnetic_angle,'dmagnetic_angle',db,min=0.,errcount=nerr)
-       endif  
-    
+       call read_inopt(is_mag,'magnetic_dipole',db,errcount=nerr)   ! here
+       if (is_mag) then
+        iexternalforce = iext_magneticp
+      !  call read_inopt(dmagnetic_momentum,'dmagnetic_momentum',db,min=0.,errcount=nerr)    
+       ! call read_inopt(dmagnetic_angle,'dmagnetic_angle',db,min=0.,errcount=nerr) 
+       endif
     case (2)
        !--fixed binary
        iexternalforce = iext_binary
@@ -2524,6 +2569,13 @@ subroutine read_setupfile(filename,ierr)
        call read_inopt(accr1,'accr1',db,min=0.,errcount=nerr)
        call read_inopt(bhspin,'bhspin',db,min=0.,errcount=nerr)
        call read_inopt(bhspinangle,'bhspinangle',db,min=0.,errcount=nerr)
+    !case (4)    ! here
+      !--star with magnetic dipole
+     ! iexternalforce = iext_magneticp
+     ! call read_inopt(m1,'m1',db,min=0.,errcount=nerr)
+      !call read_inopt(accr1,'accr1',db,min=0.,errcount=nerr)
+      !call read_inopt(dmagnetic_momentum,'dmagnetic_momentum',db,min=0.,errcount=nerr)    
+      !call read_inopt(dmagnetic_angle,'dmagnetic_angle',db,min=0.,errcount=nerr)  
     end select
  case (1)
     iexternalforce = 0
@@ -2534,10 +2586,11 @@ subroutine read_setupfile(filename,ierr)
        !--single star
        call read_inopt(m1,'m1',db,min=0.,errcount=nerr)
        call read_inopt(accr1,'accr1',db,min=0.,errcount=nerr)
-       
-       if (ixternalforce == iext_magneticp) then    ! here
-        call read_inopt(dmagnetic_momentum,'dmagnetic_momentum',db,min=0.,errcount=nerr)       ! here
-        call read_inopt(dmagnetic_angle,'dmagnetic_angle',db,min=0.,errcount=nerr)
+       call read_inopt(is_mag,'magnetic_dipole',db,errcount=nerr)   ! here
+       if (is_mag) then
+        iexternalforce = iext_magneticp
+       ! call read_inopt(dmagnetic_momentum,'dmagnetic_momentum',db,min=0.,errcount=nerr)    
+       ! call read_inopt(dmagnetic_angle,'dmagnetic_angle',db,min=0.,errcount=nerr) 
        endif
     case (2)
        !--binary
