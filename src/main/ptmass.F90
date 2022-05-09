@@ -477,6 +477,7 @@ end subroutine ptmass_predictor
 !----------------------------------------------------------------
 subroutine ptmass_corrector(nptmass,dt,vxyz_ptmass,fxyz_ptmass,xyzmh_ptmass,iexternalforce)
  use externalforces, only:update_vdependent_extforce_leapfrog,is_velocity_dependent
+ use part,           only:vxyzu 
  integer, intent(in)    :: nptmass
  real,    intent(in)    :: dt
  real,    intent(inout) :: vxyz_ptmass(3,nptmass)
@@ -494,6 +495,7 @@ subroutine ptmass_corrector(nptmass,dt,vxyz_ptmass,fxyz_ptmass,xyzmh_ptmass,iext
     !$omp parallel do schedule(static) default(none) &
     !$omp shared(vxyz_ptmass,fxyz_ptmass,xyzmh_ptmass,dt,nptmass,iexternalforce) &
     !$omp private(vxhalfi,vyhalfi,vzhalfi,fxi,fyi,fzi,fextv) &
+    !$omp private(vxyzu) &
     !$omp private(i)
     do i=1,nptmass
        if (xyzmh_ptmass(4,i) > 0.) then
@@ -505,7 +507,7 @@ subroutine ptmass_corrector(nptmass,dt,vxyz_ptmass,fxyz_ptmass,xyzmh_ptmass,iext
           fzi = fxyz_ptmass(3,i)
           call update_vdependent_extforce_leapfrog(iexternalforce,&
                vxhalfi,vyhalfi,vzhalfi,fxi,fyi,fzi,fextv,dt,&
-               xyzmh_ptmass(1,i),xyzmh_ptmass(2,i),xyzmh_ptmass(3,i))
+               xyzmh_ptmass(1,i),xyzmh_ptmass(2,i),xyzmh_ptmass(3,i),xyzmh_ptmass(5,i),vxyzu(4,i))   ! here
           fxi = fxi + fextv(1)
           fyi = fyi + fextv(2)
           fzi = fzi + fextv(3)

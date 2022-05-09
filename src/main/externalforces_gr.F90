@@ -50,7 +50,6 @@ module externalforces
  integer, parameter, public :: iext_corotate = -6
  integer, parameter, public :: iext_corot_binary = -7
  integer, parameter, public :: iext_gwinspiral = -8
- integer, parameter, public :: iext_magneticp  = -9 ! here(solo qui?)
  !
  ! Human-readable labels for these
  !

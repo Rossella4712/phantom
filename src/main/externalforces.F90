@@ -140,7 +140,7 @@ subroutine externalforce(iexternalforce,xi,yi,zi,hi,ti,fextxi,fextyi,fextzi,phi,
 
  select case(iexternalforce)
 
- case(iext_star, iext_lensethirring)
+ case(iext_star, iext_lensethirring)  
 !
 !--1/r^2 force from central point mass
 !
@@ -630,7 +630,7 @@ subroutine accrete_particles(iexternalforce,xi,yi,zi,hi,mi,ti,accreted)
 
  accreted = .false.
  select case(iexternalforce)
- case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp)  ! here ?
+ case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp)  ! here ? (da rivedere)
 
     r2 = xi*xi + yi*yi + zi*zi
     if (r2 < (accradius1)**2) accreted = .true.
