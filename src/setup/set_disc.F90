@@ -179,10 +179,10 @@ subroutine set_disc(id,master,mixture,nparttot,npart,npart_start,rmin,rmax, &
  if (present(bh_spin_angle)) aspin_angle = bh_spin_angle
 
 
-admagnetic_momentum = 0.
- if (present(dmagnetic_momentum)) admagnetic_momentum = dmagnetic_momentum    ! here
-admagnetic_angle = 0.
- if (present(dmagnetic_angle)) admagnetic_angle = dmagnetic_angle
+!admagnetic_momentum = 0.
+! if (present(dmagnetic_momentum)) admagnetic_momentum = dmagnetic_momentum    ! here
+!admagnetic_angle = 0.
+! if (present(dmagnetic_angle)) admagnetic_angle = dmagnetic_angle
  
  !--reference radius for normalisation of sigma, temperature profiles
  if (present(rref)) then

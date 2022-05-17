@@ -1112,6 +1112,7 @@ subroutine step_extern(npart,ntypes,dtsph,dtextforce,xyzh,vxyzu,fext,fxyzu,time,
 !
 ! determine whether or not to use substepping
 !
+
  if (dtextforce < dtsph) then
     dt = dtextforce
     last_step = .false.
@@ -1221,13 +1222,25 @@ subroutine step_extern(npart,ntypes,dtsph,dtextforce,xyzh,vxyzu,fext,fxyzu,time,
           !
           ! predict v to the half step
           !
+          
+          !if (vxyzu(1,i) > 1E+50) print *, "error"
+          
           vxyzu(1:3,i) = vxyzu(1:3,i) + hdt*fext(1:3,i)
+          
+         !if (vxyzu(1,i) > 1E+50) print *, "error"
+          
           !
           ! main position update
           !
+          
+          !if (xyzh(1,i) > 1E+40) print *, "error"
+          
           xyzh(1,i) = xyzh(1,i) + dt*vxyzu(1,i)
           xyzh(2,i) = xyzh(2,i) + dt*vxyzu(2,i)
           xyzh(3,i) = xyzh(3,i) + dt*vxyzu(3,i)
+          
+          !if (xyzh(1,i) > 1E+40) print *, "error"
+          
           !
           ! Skip remainder of update if boundary particle; note that fext==0 for these particles
           if (iamboundary(itype)) cycle predictor
@@ -1246,11 +1259,13 @@ subroutine step_extern(npart,ntypes,dtsph,dtextforce,xyzh,vxyzu,fext,fxyzu,time,
           !
           ! compute and add external forces
           !
+          
+          
           if (iexternalforce > 0) then
              call externalforce(iexternalforce,xyzh(1,i),xyzh(2,i),xyzh(3,i),xyzh(4,i), &
                                 timei,fextxi,fextyi,fextzi,poti,dtf,i)
              dtextforcenew = min(dtextforcenew,C_force*dtf)
-
+             
              fextx = fextx + fextxi
              fexty = fexty + fextyi
              fextz = fextz + fextzi
@@ -1259,6 +1274,7 @@ subroutine step_extern(npart,ntypes,dtsph,dtextforce,xyzh,vxyzu,fext,fxyzu,time,
              !  in leapfrog (corrector is implicit)
              !
              if (extf_is_velocity_dependent) then
+             
                 vxhalfi = vxyzu(1,i)
                 vyhalfi = vxyzu(2,i)
                 vzhalfi = vxyzu(3,i)
@@ -1269,17 +1285,20 @@ subroutine step_extern(npart,ntypes,dtsph,dtextforce,xyzh,vxyzu,fext,fxyzu,time,
                 call update_vdependent_extforce_leapfrog(iexternalforce,&
                      vxhalfi,vyhalfi,vzhalfi, &
                      fxi,fyi,fzi,fextv,dt,xyzh(1,i),xyzh(2,i),xyzh(3,i),xyzh(4,i),ui)   ! here
+      
                 fextx = fextx + fextv(1)
                 fexty = fexty + fextv(2)
                 fextz = fextz + fextv(3)
              endif
           endif
+          
           if (idamp > 0.) then
              call apply_damp(i, fextx, fexty, fextz, vxyzu, damp_fac)
           endif
           fext(1,i) = fextx
           fext(2,i) = fexty
           fext(3,i) = fextz
+
 
           if (maxvxyzu >= 4 .and. itype==igas) then
              ! NOTE: The chemistry and cooling here is implicitly calculated.  That is,
@@ -1301,6 +1320,8 @@ subroutine step_extern(npart,ntypes,dtsph,dtextforce,xyzh,vxyzu,fext,fxyzu,time,
                 call update_abundances(vxyzu(4,i),rhoi,abundance(:,i),&
                       nabundances,dphot,dt,abundi,nabn,gmwvar,abundc,abunde,abundo,abundsi)
              endif
+     
+            
 #ifdef KROME
              ! evolve chemical composition and determine new internal energy
              ! Krome also computes cooling function but only associated with chemical processes

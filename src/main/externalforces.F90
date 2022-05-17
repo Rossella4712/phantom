@@ -140,7 +140,7 @@ subroutine externalforce(iexternalforce,xi,yi,zi,hi,ti,fextxi,fextyi,fextzi,phi,
 
  select case(iexternalforce)
 
- case(iext_star, iext_lensethirring, iext_magneticp)  
+ case(iext_star, iext_lensethirring, iext_magneticp)   ! here 
 !
 !--1/r^2 force from central point mass
 !
@@ -483,8 +483,8 @@ subroutine externalforce_vdependent(iexternalforce,xyzi,hi,veli,ui,fexti,poti,de
  use extern_gnewton,       only:get_gnewton_vdependent_force
  
  use extern_magneticp,     only:get_magnetic_force    ! here
- use part,                 only:rhoh,massoftype,igas  ! here
- use eos,                  only:get_spsound,ieos      ! here
+ use part,                 only:rhoh,massoftype,igas  
+ use eos,                  only:get_spsound,ieos     
  
  integer, intent(in)  :: iexternalforce
  real,    intent(in)  :: xyzi(3),veli(3)
@@ -512,9 +512,8 @@ subroutine externalforce_vdependent(iexternalforce,xyzi,hi,veli,ui,fexti,poti,de
     
  case(iext_magneticp)     ! here
    rhoi = rhoh(hi,massoftype(igas))
-   spsoundi = get_spsound(ieos,xyzi,rhoi,vxyzui)  
+   spsoundi = get_spsound(ieos,xyzi,rhoi,vxyzui)   
    call get_magnetic_force(xyzi,veli,rhoi,spsoundi,accradius1,fexti)
-   
  case default
     fexti(:) = 0.
  end select
@@ -536,11 +535,11 @@ subroutine update_vdependent_extforce_leapfrog(iexternalforce, &
  use extern_gnewton,       only:update_gnewton_leapfrog
  
  use extern_magneticp,     only:update_magforce_leapfrog  ! here
- use part,                 only:rhoh,massoftype,igas      ! here
- use eos,                  only:get_spsound,ieos          ! here
+ use part,                 only:rhoh,massoftype,igas      
+ use eos,                  only:get_spsound,ieos          
  
  integer, intent(in)    :: iexternalforce
- real,    intent(in)    :: dt,xi,yi,zi,hi,ui     ! here
+ real,    intent(in)    :: dt,xi,yi,zi,hi,ui     
  real,    intent(in)    :: vhalfx,vhalfy,vhalfz
  real,    intent(inout) :: fxi,fyi,fzi
  real,    intent(out)   :: fexti(3)
@@ -548,8 +547,10 @@ subroutine update_vdependent_extforce_leapfrog(iexternalforce, &
  
  real   :: rhoi, spsoundi  ! here
  real   :: vxyzui(4)
- real   :: xyzi(3)                                
-  vxyzui(1) = vhalfx    ! here ??
+ real   :: xyzi(3)  
+ 
+! print *, xi, yi, zi    !no                           
+  vxyzui(1) = vhalfx    
   vxyzui(2) = vhalfy         
   vxyzui(3) = vhalfz
   vxyzui(4) = ui
@@ -568,9 +569,10 @@ subroutine update_vdependent_extforce_leapfrog(iexternalforce, &
  case(iext_gnewton)
     call update_gnewton_leapfrog(vhalfx,vhalfy,vhalfz,fxi,fyi,fzi,fexti,dt,xi,yi,zi,mass1)
     
- case(iext_magneticp)                ! here
+ case(iext_magneticp) 
+   !print *, xi, yi, zi     !no           
    rhoi = rhoh(hi,massoftype(igas))
-   spsoundi = get_spsound(ieos,xyzi,rhoi,vxyzui)   ! here 
+   spsoundi = get_spsound(ieos,xyzi,rhoi,vxyzui)  
     call update_magforce_leapfrog(vhalfx,vhalfy,vhalfz,fxi,fyi,fzi,rhoi,spsoundi,fexti,dt,xi,yi,zi,accradius1)
     
  end select
@@ -630,7 +632,7 @@ subroutine accrete_particles(iexternalforce,xi,yi,zi,hi,mi,ti,accreted)
 
  accreted = .false.
  select case(iexternalforce)
- case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp)  ! here ? (da rivedere)
+ case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton)  ! here ? (da rivedere)
 
     r2 = xi*xi + yi*yi + zi*zi
     if (r2 < (accradius1)**2) accreted = .true.
@@ -658,7 +660,7 @@ pure logical function was_accreted(iexternalforce,hi)
 
  select case(iexternalforce)
  case(iext_star,iext_binary,iext_corot_binary,iext_prdrag,&
-      iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp)   ! here
+      iext_lensethirring,iext_einsteinprec,iext_gnewton)   ! here
     ! An accreted particle is indicated by h < 0.
     ! Note less than, but not equal.
     ! (h=0 indicates dead MPI particle)
@@ -694,7 +696,7 @@ subroutine write_options_externalforces(iunit,iexternalforce)
  call write_inopt(iexternalforce,'iexternalforce',trim(string),iunit)
 
  select case(iexternalforce)
- case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp) ! here
+ case(iext_star,iext_prdrag,iext_lensethirring,iext_einsteinprec,iext_gnewton) ! here
     call write_inopt(mass1,'mass1','mass of central object in code units',iunit)
     if (accradius1_hard < tiny(0.)) accradius1_hard = accradius1
     call write_inopt(accradius1,'accradius1','soft accretion radius of central object',iunit)
@@ -702,7 +704,7 @@ subroutine write_options_externalforces(iunit,iexternalforce)
  end select
 
  select case(iexternalforce)
- case(iext_star,iext_lensethirring,iext_einsteinprec,iext_gnewton,iext_magneticp) ! here
+ case(iext_star,iext_lensethirring,iext_einsteinprec,iext_gnewton) ! here
     call write_inopt(eps_soft,'eps_soft','softening length (Plummer) for central potential in code units',iunit)
  end select
 
