@@ -1222,25 +1222,13 @@ subroutine step_extern(npart,ntypes,dtsph,dtextforce,xyzh,vxyzu,fext,fxyzu,time,
           !
           ! predict v to the half step
           !
-          
-          !if (vxyzu(1,i) > 1E+50) print *, "error"
-          
           vxyzu(1:3,i) = vxyzu(1:3,i) + hdt*fext(1:3,i)
-          
-         !if (vxyzu(1,i) > 1E+50) print *, "error"
-          
           !
           ! main position update
           !
-          
-          !if (xyzh(1,i) > 1E+40) print *, "error"
-          
           xyzh(1,i) = xyzh(1,i) + dt*vxyzu(1,i)
           xyzh(2,i) = xyzh(2,i) + dt*vxyzu(2,i)
           xyzh(3,i) = xyzh(3,i) + dt*vxyzu(3,i)
-          
-          !if (xyzh(1,i) > 1E+40) print *, "error"
-          
           !
           ! Skip remainder of update if boundary particle; note that fext==0 for these particles
           if (iamboundary(itype)) cycle predictor

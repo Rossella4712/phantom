@@ -1,14 +1,15 @@
 module extern_magneticp
 
+
 implicit none
 !default values, can be changed in the input file
  real, public :: dipole_moment = 0.          !6.3*(10**36)     ! magnetic dipole moment of the star [ G*cm^3]
  real, public :: dipole_angle = 0.                    ! angle between stellar magnetic dipole axis and disc axis
  real, public :: cos_dipole_angle = 1.
- real, public :: sin_dipole_angle = 0. 
+ real, public :: sin_dipole_angle = 0.
  
- real :: dipole_moment_code
- 
+ real :: dipole_moment_cgs 
+
  public :: update_magforce_leapfrog
  public :: get_magnetic_force
  public :: write_options_magforce, read_options_magforce
@@ -30,8 +31,6 @@ implicit none
  real :: xsink,ysink,zsink, modr   
  real :: rsinkgas(3)             ! sink-particle distance 
  real :: mu_vers(3)
-
- !print *, xyzi   !no
  
  xsink = 0.0 
  ysink = 0.0
@@ -123,7 +122,9 @@ implicit none
 end subroutine update_magforce_leapfrog
 
 
-!write and read se voglio le info nel file .in, runtime, ma se le imposto come condizioni iniziali non le scrivo qui
+
+!write and read options in input file, runtime
+
 subroutine write_options_magforce(iunit)
  use infile_utils, only:write_inopt
  use physcon, only:pi
@@ -132,7 +133,7 @@ subroutine write_options_magforce(iunit)
  			
  dipole_angle = dipole_angle*(180.0/pi)
  write(iunit,"(/,a)") '# options relating to magnetic precession'
- call write_inopt(dipole_moment_code,'dipole_moment','stellar magnetic dipole moment [code units] ', iunit) ![G*cm^3]
+ call write_inopt(dipole_moment_cgs,'dipole_moment','stellar magnetic dipole moment [G*cm^3] ', iunit) 
  call write_inopt(dipole_angle, 'dipole_angle','angle between stellar magnetic dipole axis and disc axis (0 to 180)', iunit)
  dipole_angle = dipole_angle*(pi/180.0)
 end subroutine write_options_magforce
@@ -140,28 +141,31 @@ end subroutine write_options_magforce
 
 subroutine read_options_magforce(name,valstring,imatch,igotall,ierr)
  use io,      only:fatal
- use physcon, only:pi
-! use units,   only:udist,unit_Bfield
+ use physcon, only:pi,au
+ use units,   only:udist,unit_Bfield
  character(len=*), intent(in)  :: name,valstring
  logical,          intent(out) :: imatch,igotall
  integer,          intent(out) :: ierr
  integer, save :: ngot = 0
  character(len=30), parameter :: label = 'read_options_magforce'
- 
- 			
+ 	
  imatch  = .true.
  igotall = .false.
  		
  select case(trim(name))
  case('dipole_moment')
-    read(valstring,*,iostat=ierr) dipole_moment_code  
-    if (dipole_moment_code < 0.) then
+    read(valstring,*,iostat=ierr) dipole_moment_cgs  
+    if (dipole_moment < 0.) then
      call fatal(label,'invalid dipole moment (should be > 0.)')
-    !else
-     !dipole_moment = dipole_moment_cgs!/(unit_Bfield*(udist**3)) 
-    ! print *, dipole_moment
-    ! print *, udist
-    ! print *, unit_Bfield
+    else
+     
+     ! write dipole_moment in code units, considering udist=1., umass=1., utime=1. 
+ 
+     dipole_moment = dipole_moment_cgs*(unit_Bfield/(sqrt(4.*pi)*8.138E+3))*(udist/au)**3
+     print *, dipole_moment
+     print *, udist
+     print *, unit_Bfield
+     
     endif
     ngot = ngot + 1
  case('dipole_angle')
